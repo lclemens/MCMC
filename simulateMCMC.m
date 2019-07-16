@@ -1,5 +1,13 @@
-function [] = simulateMCMC(tdata,ydata,initialparams,lb,ub)
+function [] = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
+%% simulateMCMC accepts input:
+% function (function to call MCMC on - accepts parameters and tdata)
+% tdata
+% ydata - data to compare function output
+% initialparams - parameters to start MCMC chain at
+% lb - lower bounds for parameters
+% ub - upper bounds for parameters
 
+%% Set constants
 NTMAX = 1e9;
 NTCHECK = 3000;
 ntNextStationarityCheck = 2*NTCHECK;
@@ -38,13 +46,22 @@ accepts = zeros(N_params,1);
 % intialize stuff for convergence check
 ntNextStationarityCheck = 3*NTCHECK;
 
+% Histograms over lower/upper bound range
+% function to bin parameters for posterior distribution
+NBINS = 500;
+
+binSize = (upperbounds - lowerbounds)./NBINS;
+
+paramHistCounts = zeros(N_params,NBINS);
+
+
 convergedTF=0;
 nt=1;
 E=Inf;
 
 %% Find initial energy
 % find initial fit
-yCurrent = MAG3D20160915_CODER03(parameters,tdata);
+yCurrent = fun(parameters,tdata);
 % find inital sum of squared residuals (SSR)
 SSR = sum((yCurrent-ydata).^2);
 E = SSR;
@@ -112,7 +129,7 @@ while(~convergedTF && nt < NTMAX)
     %% Metropolis test
     
     % call function with proposed parameters
-    yPropose = MAG3D20160915_CODER03(paramsPropose,tdata);
+    yPropose = fun(paramsPropose,tdata);
     
     % calculate sum of square residuals (SSR)
     SSR = sum((yPropose-ydata).^2);
@@ -138,14 +155,9 @@ while(~convergedTF && nt < NTMAX)
     % collection of all parameter values
     % parameters_all(:,nt) = parameters;
 
-    % Histograms over lower/upper bound range
-    % function to bin parameters for posterior distribution
-    NBINS = 500;
-
-    binSize = (upperbounds - lowerbounds)./NBINS;
 
     % find bins for the current parameters
-    binCurrent(:) = ceil( ( parameters(:) + abs(lowerbounds(:)) ) / binSize(:) );
+    binCurrent(:) = ceil( ( parameters(:) + abs(lowerbounds(:)) ) ./ binSize(:) );
 
     % Params histograms over bounds
     for p=1:N_params
@@ -194,7 +206,7 @@ while(~convergedTF && nt < NTMAX)
 
 
 
-    %% 
+    %% Iterate
     nt = nt+1;
 end
     
