@@ -1,4 +1,4 @@
-function parameters = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
+function parameters_fit = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
 %% simulateMCMC accepts input:
 % function (function to call MCMC on - accepts parameters and tdata)
 % tdata
@@ -8,16 +8,17 @@ function parameters = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
 % ub - upper bounds for parameters
 
 %% Set constants
-NTMAX = 1e9;
+NTMAX = 1e8;
 NTCHECK = 3000;
 ntNextStationarityCheck = 2*NTCHECK;
 KSCRITICAL = 0.01;
-NTADAPT = 200;
+NTADAPT = 500;
+NBINS = 500;
 
 
 %% Initialize parameters
 % initialize number of parameters
-N_params = length(initialparams);
+n_params = length(initialparams);
 
 % set current parameters
 parameters = initialparams;
@@ -27,14 +28,14 @@ if(exist('lb','var'))
     lowerbounds = lb;
 else
     disp('No lower bounds specified.');
-    lowerbounds = -Inf*ones(N_params,1);
+    lowerbounds = -Inf*ones(n_params,1);
 end
 
 if(exist('ub','var'))
     upperbounds = ub;
 else
     disp('No upper bounds specified.');
-    upperbounds = Inf*ones(N_params,1);
+    upperbounds = Inf*ones(n_params,1);
 end
 
 disp('lower bounds');
@@ -44,21 +45,19 @@ disp(upperbounds);
 
 
 % initialize step size for each parameter
-dChi = ones(N_params,1);
-proposals = zeros(N_params,1);
-accepts = zeros(N_params,1);
+dChi = ones(n_params,1);
+proposals = zeros(n_params,1);
+accepts = zeros(n_params,1);
 
 % intialize stuff for convergence check
 ntNextStationarityCheck = 3*NTCHECK;
 
 % Histograms over lower/upper bound range
 % function to bin parameters for posterior distribution
-NBINS = 500;
-
 binSize = (upperbounds - lowerbounds)./NBINS;
 
-paramHistCounts = zeros(N_params,NBINS);
-paramHistCountsPrevious = zeros(N_params,NBINS);
+paramHistCounts = zeros(n_params,NBINS);
+paramHistCountsPrevious = zeros(n_params,NBINS);
 
 
 convergedTF=0;
@@ -85,7 +84,7 @@ while(~convergedTF && nt < NTMAX)
         proposals(:) = 0;
         
         if(nt<NTCHECK)
-            for iParam = 1:N_params
+            for iParam = 1:n_params
                 if(rate(iParam) > 0.5 || rate(iParam) < 0.5)
                     dChi(iParam) = dChi(iParam)*rate(iParam)/0.44;
                     % possibly include max/min step sizes
@@ -105,7 +104,7 @@ while(~convergedTF && nt < NTMAX)
 %         // 6. increment the iteration and repeat
 
     % choose parameter to propose
-    pPropose = ceil(N_params*rand);
+    pPropose = ceil(n_params*rand);
     
     % pick step size
     dChiHere = dChi(pPropose);
@@ -167,7 +166,7 @@ while(~convergedTF && nt < NTMAX)
     %disp(binCurrent);
 
     % Params histograms over bounds
-    for p=1:N_params
+    for p=1:n_params
         paramHistCounts(p,binCurrent(p)) = paramHistCounts(p,binCurrent(p))+1;
     end
     
@@ -184,12 +183,12 @@ while(~convergedTF && nt < NTMAX)
     if(nt==ntNextStationarityCheck)
 
         % intialize
-        ksStatistic = zeros(N_params,1);
-        cdf1 = zeros(N_params,NBINS);
-        cdf2 = zeros(N_params,NBINS);
+        ksStatistic = zeros(n_params,1);
+        cdf1 = zeros(n_params,NBINS);
+        cdf2 = zeros(n_params,NBINS);
 
         % compares first half to second half of data for each parameter
-        for p=1:N_params
+        for p=1:n_params
             % compute cumulative distribution functions
             cdf1(p,:) = cumsum(paramHistCountsPrevious(p,:))./(nt/2);
             cdf2(p,:) = cumsum(paramHistCounts(p,:))./(nt/2);
@@ -217,8 +216,8 @@ while(~convergedTF && nt < NTMAX)
     nt = nt+1;
 end
 
-
-    
+parameters_fit = parameters;
+save('MCMCOutput.mat','parameters_all','parameters','lowerbounds','upperbounds','n_params','parameters_fit');    
 disp(nt);
 disp(parameters);
 
