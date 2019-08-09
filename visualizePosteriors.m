@@ -128,13 +128,13 @@ function [y,xo]=density(x,xout,ss,gaus)
 	if gaus==1
 	  % Gaussian kernel
 	  for i=1:n
-		%y(i) = 1/nx*sum(norpf((xout(i)-x)/s))./s;
-        norpf_in = (xout(i)-x)/s;
-        mu = 0;
-        sigma2 = 1;
-        norpf_out=1./sqrt(2*pi*sigma2).*exp(-0.5*(norpf_in-mu).^2 ./sigma2);
-        y(i) = 1/nx*sum(norpf_out)./s;
-	  end
+		y(i) = 1/nx*sum(norpf((xout(i)-x)/s))./s;
+%         norpf_in = (xout(i)-x)/s;
+%         mu = 0;
+%         sigma2 = 1;
+%         norpf_out=1./sqrt(2*pi*sigma2).*exp(-0.5*(norpf_in-mu).^2 ./sigma2);
+%         y(i) = 1/nx*sum(norpf_out)./s;
+      end
 	elseif gaus==-1
 	  % Gamma kernel (still testing)
 	  s = s*0.5;
