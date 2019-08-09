@@ -15,7 +15,7 @@ plot(testDomain,testData);
 
 
 initialparams = [1 -4];
-simulateMCMC(testFunction,testDomain,testData,initialparams,[-100 100],[100 100]);
+params_fit = simulateMCMC(testFunction,testDomain,testData,initialparams,[-100 -100],[100 100]);
 
 %% Initialize parameters
 

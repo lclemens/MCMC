@@ -1,4 +1,4 @@
-function [] = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
+function parameters = simulateMCMC(fun,tdata,ydata,initialparams,lb,ub)
 %% simulateMCMC accepts input:
 % function (function to call MCMC on - accepts parameters and tdata)
 % tdata
@@ -12,7 +12,7 @@ NTMAX = 1e9;
 NTCHECK = 3000;
 ntNextStationarityCheck = 2*NTCHECK;
 KSCRITICAL = 0.01;
-NTADAPT = 20000;
+NTADAPT = 200;
 
 
 %% Initialize parameters
@@ -37,6 +37,11 @@ else
     upperbounds = Inf*ones(N_params,1);
 end
 
+disp('lower bounds');
+disp(lowerbounds);
+disp('upper bounds');
+disp(upperbounds);
+
 
 % initialize step size for each parameter
 dChi = ones(N_params,1);
@@ -53,6 +58,7 @@ NBINS = 500;
 binSize = (upperbounds - lowerbounds)./NBINS;
 
 paramHistCounts = zeros(N_params,NBINS);
+paramHistCountsPrevious = zeros(N_params,NBINS);
 
 
 convergedTF=0;
@@ -153,11 +159,12 @@ while(~convergedTF && nt < NTMAX)
     %% Collect data
     
     % collection of all parameter values
-    % parameters_all(:,nt) = parameters;
+    parameters_all(:,nt) = parameters;
 
 
     % find bins for the current parameters
     binCurrent(:) = ceil( ( parameters(:) + abs(lowerbounds(:)) ) ./ binSize(:) );
+    %disp(binCurrent);
 
     % Params histograms over bounds
     for p=1:N_params
@@ -168,8 +175,8 @@ while(~convergedTF && nt < NTMAX)
     
     % first append bins
     if(nt==NTCHECK)
-        paramsHistCountsPrevious = paramsHistCountsPrevious + paramsHistCounts;
-        paramsHistCounts = zeros(p,NBINS);
+        paramHistCountsPrevious = paramHistCountsPrevious + paramHistCounts;
+        paramHistCounts = zeros(p,NBINS);
     end
     
 
@@ -184,8 +191,8 @@ while(~convergedTF && nt < NTMAX)
         % compares first half to second half of data for each parameter
         for p=1:N_params
             % compute cumulative distribution functions
-            cdf1(p,:) = cumsum(paramsHistCountsPrevious(p,:))./(nt/2);
-            cdf2(p,:) = cumsum(paramsHistCounts(p,:))./(nt/2);
+            cdf1(p,:) = cumsum(paramHistCountsPrevious(p,:))./(nt/2);
+            cdf2(p,:) = cumsum(paramHistCounts(p,:))./(nt/2);
             % compute ksStatistic
             ksStatistic(p) = max(abs(cdf1(p,:)-cdf2(p,:)));
         end
@@ -196,8 +203,8 @@ while(~convergedTF && nt < NTMAX)
         end
         
         % append bins
-        paramsHistCountsPrevious = paramsHistCountsPrevious + paramsHistCounts;
-        paramsHistCounts = zeros(p,NBINS);
+        paramHistCountsPrevious = paramHistCountsPrevious + paramHistCounts;
+        paramHistCounts = zeros(p,NBINS);
         
         % set next stationarity checkpoint
         ntNextStationarityCheck = 2*ntNextStationarityCheck;
@@ -209,8 +216,14 @@ while(~convergedTF && nt < NTMAX)
     %% Iterate
     nt = nt+1;
 end
+
+
     
-    
+disp(nt);
+disp(parameters);
+
+figure; clf; hold on;
+plot(1:1:NBINS,paramHistCountsPrevious);
         
         
         
